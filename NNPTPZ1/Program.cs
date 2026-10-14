@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using NNPTPZ1.Mathematics;
@@ -32,22 +33,51 @@ namespace NNPTPZ1
 
             List<ComplexNumber> roots = new List<ComplexNumber>();
 
-            Polynomial polynomial = new Polynomial();
-            polynomial.AddCoefficients(
-                new List<ComplexNumber>
-                {
-                    new ComplexNumber(1,0),
-                    ComplexNumber.Zero,
-                    ComplexNumber.Zero,
-                    new ComplexNumber(1,0)
-                }
-            );
+            Polynomial polynomial = CreatePolynomial();
             Polynomial derivative = polynomial.Derive();
 
             Console.WriteLine(polynomial);
             Console.WriteLine(derivative);
 
-            Color[] colors = new Color[]
+            Color[] colors = CreateColors();
+
+            GenerateFractal(
+                bitmap,
+                width,
+                height,
+                xMin,
+                yMin,
+                xStep,
+                yStep,
+                polynomial,
+                derivative,
+                roots,
+                colors
+            );
+
+            bitmap.Save(outputName ?? "../../../out.png");
+        }
+
+        private static Polynomial CreatePolynomial()
+        {
+            Polynomial polynomial = new Polynomial();
+
+            polynomial.AddCoefficients(
+                new List<ComplexNumber>
+                {
+                    new ComplexNumber(1, 0),
+                    ComplexNumber.Zero,
+                    ComplexNumber.Zero,
+                    new ComplexNumber(1, 0)
+                }
+            );
+
+            return polynomial;
+        }
+
+        private static Color[] CreateColors()
+        {
+            return new Color[]
             {
                 Color.Red,
                 Color.Blue,
@@ -59,36 +89,78 @@ namespace NNPTPZ1
                 Color.Cyan,
                 Color.Magenta
             };
+        }
 
+        private static void GenerateFractal(
+            Bitmap bitmap,
+            int width,
+            int height,
+            double xMin,
+            double yMin,
+            double xStep,
+            double yStep,
+            Polynomial polynomial,
+            Polynomial derivative,
+            List<ComplexNumber> roots,
+            Color[] colors)
+        {
             // generate a color for every pixel in image
             for (int firstIndex = 0; firstIndex < width; firstIndex++)
             {
                 for (int secondIndex = 0; secondIndex < height; secondIndex++)
                 {
-                    // calculate coordinates represented by the current pixel
-                    double yCoordinate = yMin + firstIndex * yStep;
-                    double xCoordinate = xMin + secondIndex * xStep;
-
-                    ComplexNumber startPoint =
-                        CreateStartPoint(xCoordinate, yCoordinate);
-
-                    // find the root using Newton's method
-                    (ComplexNumber root, float iterationCount) =
-                       FindRoot(polynomial, derivative, startPoint);
-
-                    // get index used to identify the found root
-                    int rootIndex =
-                        GetOrAddRootIndex(root, roots);
-
-                    // determine pixel color based on the root and iteration count
-                    Color pixelColor =
-                        GetPixelColor(rootIndex, iterationCount, colors);
-
-                    bitmap.SetPixel(secondIndex, firstIndex, pixelColor);
+                    GeneratePixel(
+                        bitmap,
+                        firstIndex,
+                        secondIndex,
+                        xMin,
+                        yMin,
+                        xStep,
+                        yStep,
+                        polynomial,
+                        derivative,
+                        roots,
+                        colors
+                    );
                 }
             }
-            bitmap.Save(outputName ?? "../../../out.png");
         }
+
+        private static void GeneratePixel(
+            Bitmap bitmap,
+            int firstIndex,
+            int secondIndex,
+            double xMin,
+            double yMin,
+            double xStep,
+            double yStep,
+            Polynomial polynomial,
+            Polynomial derivative,
+            List<ComplexNumber> roots,
+            Color[] colors)
+        {
+            // calculate coordinates represented by the current pixel
+            double yCoordinate = yMin + firstIndex * yStep;
+            double xCoordinate = xMin + secondIndex * xStep;
+
+            ComplexNumber startPoint =
+                CreateStartPoint(xCoordinate, yCoordinate);
+
+            // find the root using Newton's method
+            (ComplexNumber root, float iterationCount) =
+                FindRoot(polynomial, derivative, startPoint);
+
+            // get index used to identify the found root
+            int rootIndex =
+                GetOrAddRootIndex(root, roots);
+
+            // determine pixel color based on the root and iteration count
+            Color pixelColor =
+                GetPixelColor(rootIndex, iterationCount, colors);
+
+            bitmap.SetPixel(secondIndex, firstIndex, pixelColor);
+        }
+
         private static ComplexNumber CreateStartPoint(
             double xCoordinate,
             double yCoordinate)
@@ -124,8 +196,10 @@ namespace NNPTPZ1
                 {
                     iteration--;
                 }
+
                 iterationCount++;
             }
+
             return (currentPoint, iterationCount);
         }
 
@@ -160,6 +234,7 @@ namespace NNPTPZ1
                 roots.Add(currentPoint);
                 rootIndex = roots.Count;
             }
+
             return rootIndex;
         }
 
@@ -169,11 +244,13 @@ namespace NNPTPZ1
             Color[] colors)
         {
             Color pixelColor = colors[rootIndex % colors.Length];
+
             pixelColor = Color.FromArgb(
                 pixelColor.R,
                 pixelColor.G,
                 pixelColor.B
             );
+
             // darken the color based on the number of iterations
             pixelColor = Color.FromArgb(
                 Math.Min(
@@ -189,6 +266,7 @@ namespace NNPTPZ1
                     255
                 )
             );
+
             return pixelColor;
         }
     }
